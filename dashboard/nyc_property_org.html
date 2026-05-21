@@ -1,0 +1,1513 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NYC Property Market Analysis · Group 17</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
+    rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #0a0c10;
+      --bg2: #111318;
+      --bg3: #181c24;
+      --card: #1a1f2a;
+      --border: rgba(255, 255, 255, 0.07);
+      --border-hover: rgba(255, 255, 255, 0.14);
+      --text: #f0ede8;
+      --muted: #7a8090;
+      --accent: #e8c97a;
+      --accent2: #4fc3a1;
+      --accent3: #e87a7a;
+      --accent4: #7ab8e8;
+      --manhattan: #e8c97a;
+      --brooklyn: #4fc3a1;
+      --queens: #7ab8e8;
+      --staten: #c47ae8;
+      --bronx: #e87a7a;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 15px;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* ── NOISE TEXTURE ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.035'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.4;
+    }
+
+    /* ── ANIMATED GRID BG ── */
+    .grid-bg {
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(232, 201, 122, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(232, 201, 122, 0.03) 1px, transparent 1px);
+      background-size: 48px 48px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 40px;
+      height: 64px;
+      background: rgba(10, 12, 16, 0.85);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: 'DM Serif Display', serif;
+      font-size: 18px;
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    .nav-brand .dot {
+      width: 8px;
+      height: 8px;
+      background: var(--accent);
+      border-radius: 50%;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+
+      50% {
+        opacity: 0.5;
+        transform: scale(0.8);
+      }
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 32px;
+      list-style: none;
+    }
+
+    .nav-links a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover {
+      color: var(--text);
+    }
+
+    .nav-badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--accent);
+      border: 1px solid rgba(232, 201, 122, 0.3);
+      padding: 4px 10px;
+      border-radius: 20px;
+      background: rgba(232, 201, 122, 0.05);
+    }
+
+    /* ── MAIN ── */
+    main {
+      position: relative;
+      z-index: 1;
+      padding-top: 64px;
+    }
+
+    /* ── HERO ── */
+    .hero {
+      min-height: 92vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 80px 60px 60px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero-glow {
+      position: absolute;
+      top: -200px;
+      right: -100px;
+      width: 700px;
+      height: 700px;
+      background: radial-gradient(circle, rgba(232, 201, 122, 0.06) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .hero-glow2 {
+      position: absolute;
+      bottom: -200px;
+      left: -100px;
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, rgba(79, 195, 161, 0.05) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .hero-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.15em;
+      color: var(--accent);
+      text-transform: uppercase;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .hero-label::before {
+      content: '';
+      display: inline-block;
+      width: 32px;
+      height: 1px;
+      background: var(--accent);
+    }
+
+    .hero h1 {
+      font-family: 'DM Serif Display', serif;
+      font-size: clamp(48px, 7vw, 96px);
+      line-height: 0.95;
+      color: var(--text);
+      max-width: 900px;
+      margin-bottom: 12px;
+    }
+
+    .hero h1 em {
+      font-style: italic;
+      color: var(--accent);
+    }
+
+    .hero-sub {
+      font-size: 16px;
+      color: var(--muted);
+      max-width: 520px;
+      margin: 24px 0 48px;
+      line-height: 1.7;
+    }
+
+    .hero-stats {
+      display: flex;
+      gap: 48px;
+      margin-top: 16px;
+    }
+
+    .hero-stat .val {
+      font-family: 'DM Serif Display', serif;
+      font-size: 36px;
+      color: var(--text);
+      line-height: 1;
+    }
+
+    .hero-stat .lbl {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 4px;
+      letter-spacing: 0.05em;
+    }
+
+    .hero-stat .lbl svg {
+      vertical-align: middle;
+      margin-right: 4px;
+    }
+
+    .divider-line {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--border), transparent);
+      margin: 0 60px;
+    }
+
+    /* ── SECTION ── */
+    section {
+      padding: 80px 60px;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      margin-bottom: 40px;
+    }
+
+    .section-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.18em;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .section-title {
+      font-family: 'DM Serif Display', serif;
+      font-size: 32px;
+      color: var(--text);
+      line-height: 1.1;
+    }
+
+    .section-note {
+      font-size: 13px;
+      color: var(--muted);
+      text-align: right;
+      max-width: 280px;
+    }
+
+    /* ── KPI CARDS ── */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .kpi-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px 24px;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.3s, transform 0.3s;
+      cursor: default;
+    }
+
+    .kpi-card:hover {
+      border-color: var(--border-hover);
+      transform: translateY(-2px);
+    }
+
+    .kpi-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: var(--accent-color, var(--accent));
+    }
+
+    .kpi-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 16px;
+      background: rgba(255, 255, 255, 0.04);
+      font-size: 18px;
+    }
+
+    .kpi-val {
+      font-family: 'DM Serif Display', serif;
+      font-size: 28px;
+      color: var(--text);
+      line-height: 1.1;
+      margin-bottom: 4px;
+    }
+
+    .kpi-lbl {
+      font-size: 12px;
+      color: var(--muted);
+      letter-spacing: 0.03em;
+    }
+
+    .kpi-change {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 20px;
+    }
+
+    .kpi-change.up {
+      color: var(--accent2);
+      background: rgba(79, 195, 161, 0.1);
+    }
+
+    /* ── CHART CARDS ── */
+    .chart-grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    .chart-grid-3 {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 20px;
+    }
+
+    .chart-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px;
+      position: relative;
+      transition: border-color 0.3s;
+    }
+
+    .chart-card:hover {
+      border-color: var(--border-hover);
+    }
+
+    .chart-card.span-full {
+      grid-column: 1 / -1;
+    }
+
+    .chart-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+
+    .chart-subtitle {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 24px;
+    }
+
+    .chart-wrap {
+      position: relative;
+      height: 240px;
+    }
+
+    .chart-wrap.tall {
+      height: 320px;
+    }
+
+    /* ── BOROUGH BARS ── */
+    .borough-list {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .borough-row {
+      display: grid;
+      grid-template-columns: 140px 1fr 90px;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .borough-name {
+      font-size: 13px;
+      color: var(--text);
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .borough-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .borough-bar-track {
+      height: 6px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .borough-bar-fill {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .borough-price {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: var(--muted);
+      text-align: right;
+    }
+
+    /* ── NEIGHBORHOOD TABLE ── */
+    .hood-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .hood-table th {
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      padding: 10px 16px;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .hood-table td {
+      padding: 12px 16px;
+      font-size: 13px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+      color: var(--text);
+    }
+
+    .hood-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .hood-table tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .rank-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px;
+      height: 22px;
+      border-radius: 6px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 500;
+    }
+
+    .price-bar-inline {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .mini-bar-track {
+      flex: 1;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.06);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .mini-bar-fill {
+      height: 100%;
+      border-radius: 2px;
+      background: var(--accent);
+      transition: width 1s ease;
+    }
+
+    /* ── INSIGHTS CARDS ── */
+    .insights-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+
+    .insight-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      transition: border-color 0.3s, transform 0.3s;
+    }
+
+    .insight-card:hover {
+      border-color: var(--border-hover);
+      transform: translateY(-2px);
+    }
+
+    .insight-icon {
+      font-size: 28px;
+      margin-bottom: 14px;
+    }
+
+    .insight-heading {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+
+    .insight-text {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.65;
+    }
+
+    .insight-highlight {
+      color: var(--accent);
+      font-weight: 500;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 40px 60px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    footer .left {
+      font-family: 'DM Serif Display', serif;
+      font-size: 20px;
+      color: var(--accent);
+    }
+
+    footer .right {
+      font-size: 12px;
+      color: var(--muted);
+      text-align: right;
+      line-height: 1.7;
+    }
+
+    /* ── SCROLL ANIMATIONS ── */
+    .fade-in {
+      opacity: 0;
+      transform: translateY(24px);
+      transition: opacity 0.7s ease, transform 0.7s ease;
+    }
+
+    .fade-in.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .stagger-1 {
+      transition-delay: 0.1s;
+    }
+
+    .stagger-2 {
+      transition-delay: 0.2s;
+    }
+
+    .stagger-3 {
+      transition-delay: 0.3s;
+    }
+
+    .stagger-4 {
+      transition-delay: 0.4s;
+    }
+
+    /* ── LEGEND ── */
+    .legend {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      margin-top: 16px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .legend-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    /* ── TAG ── */
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      font-family: 'JetBrains Mono', monospace;
+      padding: 3px 10px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+
+    /* ── DIVIDER ── */
+    .section-divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--border), transparent);
+      margin: 0 60px;
+    }
+
+    /* ── SKEW BANNER ── */
+    .skew-banner {
+      background: var(--card);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      padding: 20px 60px;
+      overflow: hidden;
+    }
+
+    .ticker {
+      display: flex;
+      gap: 60px;
+      animation: ticker 30s linear infinite;
+      white-space: nowrap;
+    }
+
+    .ticker-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: var(--muted);
+      flex-shrink: 0;
+    }
+
+    .ticker-item .lbl {
+      color: var(--accent);
+    }
+
+    @keyframes ticker {
+      from {
+        transform: translateX(0);
+      }
+
+      to {
+        transform: translateX(-50%);
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="grid-bg"></div>
+
+  <!-- NAV -->
+  <nav>
+    <a href="#" class="nav-brand">
+      <div class="dot"></div>
+      NYC PropMarket
+    </a>
+    <ul class="nav-links">
+      <li><a href="#overview">Overview</a></li>
+      <li><a href="#boroughs">Boroughs</a></li>
+      <li><a href="#trends">Trends</a></li>
+      <li><a href="#neighborhoods">Neighborhoods</a></li>
+      <li><a href="#insights">Insights</a></li>
+    </ul>
+    <span class="nav-badge">Group 17 · ADS</span>
+  </nav>
+
+  <main>
+
+    <!-- EMBEDDED WEBSITE -->
+    <div class="embedded-section">
+      <iframe src="https://p9group17.netlify.app/"
+        style="width: 100%; height: 100vh; border: none; border-bottom: 1px solid rgba(255,255,255,0.07);"></iframe>
+    </div>
+
+    <!-- HERO -->
+    <div class="hero" id="overview">
+      <div class="hero-glow"></div>
+      <div class="hero-glow2"></div>
+      <div class="hero-label">Advanced Data Science & Analytics · Group 17</div>
+      <h1>New York City<br><em>Property Market</em><br>Analysis</h1>
+      <p class="hero-sub">A comprehensive analysis of 24,668 residential property sales across all five NYC boroughs
+        from September 2016 to August 2017.</p>
+      <div class="hero-stats">
+        <div class="hero-stat fade-in stagger-1">
+          <div class="val">24,668</div>
+          <div class="lbl">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+              <polyline points="9 22 9 12 15 12 15 22" />
+            </svg>
+            Total Sales
+          </div>
+        </div>
+        <div class="hero-stat fade-in stagger-2">
+          <div class="val">$757K</div>
+          <div class="lbl">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="12" y1="1" x2="12" y2="23" />
+              <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+            </svg>
+            Avg Sale Price
+          </div>
+        </div>
+        <div class="hero-stat fade-in stagger-3">
+          <div class="val">$399</div>
+          <div class="lbl">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="2" y="3" width="20" height="14" rx="2" />
+              <line x1="8" y1="21" x2="16" y2="21" />
+              <line x1="12" y1="17" x2="12" y2="21" />
+            </svg>
+            Avg $/sq ft
+          </div>
+        </div>
+        <div class="hero-stat fade-in stagger-4">
+          <div class="val">1,166</div>
+          <div class="lbl">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon
+                points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+            </svg>
+            Luxury Properties
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TICKER -->
+    <div class="skew-banner">
+      <div class="ticker" id="ticker">
+        <div class="ticker-item"><span class="lbl">MANHATTAN AVG</span> $6,574,102</div>
+        <div class="ticker-item"><span class="lbl">BROOKLYN AVG</span> $994,340</div>
+        <div class="ticker-item"><span class="lbl">QUEENS AVG</span> $671,744</div>
+        <div class="ticker-item"><span class="lbl">STATEN ISLAND AVG</span> $516,382</div>
+        <div class="ticker-item"><span class="lbl">BRONX AVG</span> $482,205</div>
+        <div class="ticker-item"><span class="lbl">SOHO TOP HOOD</span> $17,852,167</div>
+        <div class="ticker-item"><span class="lbl">SKEWNESS</span> 16.17 (Right)</div>
+        <div class="ticker-item"><span class="lbl">MEDIAN PRICE</span> $590,000</div>
+        <div class="ticker-item"><span class="lbl">COVERAGE</span> Sep 2016 – Aug 2017</div>
+        <!-- duplicate for seamless loop -->
+        <div class="ticker-item"><span class="lbl">MANHATTAN AVG</span> $6,574,102</div>
+        <div class="ticker-item"><span class="lbl">BROOKLYN AVG</span> $994,340</div>
+        <div class="ticker-item"><span class="lbl">QUEENS AVG</span> $671,744</div>
+        <div class="ticker-item"><span class="lbl">STATEN ISLAND AVG</span> $516,382</div>
+        <div class="ticker-item"><span class="lbl">BRONX AVG</span> $482,205</div>
+        <div class="ticker-item"><span class="lbl">SOHO TOP HOOD</span> $17,852,167</div>
+        <div class="ticker-item"><span class="lbl">SKEWNESS</span> 16.17 (Right)</div>
+        <div class="ticker-item"><span class="lbl">MEDIAN PRICE</span> $590,000</div>
+        <div class="ticker-item"><span class="lbl">COVERAGE</span> Sep 2016 – Aug 2017</div>
+      </div>
+    </div>
+
+    <div class="divider-line"></div>
+
+    <!-- KPI SECTION -->
+    <section id="boroughs">
+      <div class="section-header fade-in">
+        <div>
+          <div class="section-label">Dashboard · Key Metrics</div>
+          <div class="section-title">Market at a Glance</div>
+        </div>
+        <div class="section-note">NYC residential property sales · 2016–2017 · Categories 01–03 only</div>
+      </div>
+
+      <div class="kpi-grid">
+        <div class="kpi-card fade-in stagger-1" style="--accent-color: var(--accent)">
+          <div class="kpi-change up">+9.2% YoY</div>
+          <div class="kpi-icon">🏙️</div>
+          <div class="kpi-val">$757K</div>
+          <div class="kpi-lbl">Average Sale Price</div>
+        </div>
+        <div class="kpi-card fade-in stagger-2" style="--accent-color: var(--accent2)">
+          <div class="kpi-change up">+3.1%</div>
+          <div class="kpi-icon">📐</div>
+          <div class="kpi-val">$399/sqft</div>
+          <div class="kpi-lbl">Avg Price per Sq Ft</div>
+        </div>
+        <div class="kpi-card fade-in stagger-3" style="--accent-color: var(--accent4)">
+          <div class="kpi-icon">🏠</div>
+          <div class="kpi-val">24,668</div>
+          <div class="kpi-lbl">Total Transactions</div>
+        </div>
+        <div class="kpi-card fade-in stagger-4" style="--accent-color: var(--accent3)">
+          <div class="kpi-icon">⭐</div>
+          <div class="kpi-val">1,166</div>
+          <div class="kpi-lbl">Luxury Properties (>2× avg)</div>
+        </div>
+      </div>
+
+      <!-- Borough Breakdown + Doughnut -->
+      <div class="chart-grid-3 fade-in" style="margin-top: 20px;">
+        <div class="chart-card">
+          <div class="chart-title">Average Sale Price by Borough</div>
+          <div class="chart-subtitle">Residential properties · 2016–2017</div>
+          <div class="borough-list" id="borough-bars">
+            <div class="borough-row">
+              <div class="borough-name"><span class="borough-dot" style="background:var(--manhattan)"></span>Manhattan
+              </div>
+              <div class="borough-bar-track">
+                <div class="borough-bar-fill" style="width:0%;background:var(--manhattan)" data-width="100%"></div>
+              </div>
+              <div class="borough-price">$6,574,102</div>
+            </div>
+            <div class="borough-row">
+              <div class="borough-name"><span class="borough-dot" style="background:var(--brooklyn)"></span>Brooklyn
+              </div>
+              <div class="borough-bar-track">
+                <div class="borough-bar-fill" style="width:0%;background:var(--brooklyn)" data-width="15.1%"></div>
+              </div>
+              <div class="borough-price">$994,340</div>
+            </div>
+            <div class="borough-row">
+              <div class="borough-name"><span class="borough-dot" style="background:var(--queens)"></span>Queens</div>
+              <div class="borough-bar-track">
+                <div class="borough-bar-fill" style="width:0%;background:var(--queens)" data-width="10.2%"></div>
+              </div>
+              <div class="borough-price">$671,744</div>
+            </div>
+            <div class="borough-row">
+              <div class="borough-name"><span class="borough-dot" style="background:var(--staten)"></span>Staten Island
+              </div>
+              <div class="borough-bar-track">
+                <div class="borough-bar-fill" style="width:0%;background:var(--staten)" data-width="7.9%"></div>
+              </div>
+              <div class="borough-price">$516,382</div>
+            </div>
+            <div class="borough-row">
+              <div class="borough-name"><span class="borough-dot" style="background:var(--bronx)"></span>Bronx</div>
+              <div class="borough-bar-track">
+                <div class="borough-bar-fill" style="width:0%;background:var(--bronx)" data-width="7.3%"></div>
+              </div>
+              <div class="borough-price">$482,205</div>
+            </div>
+          </div>
+
+          <div style="margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--border);">
+            <div class="chart-title">Price per Sq Ft by Borough</div>
+            <div class="chart-subtitle" style="margin-bottom: 14px;">Manhattan dominates at $1,531/sqft</div>
+            <div class="borough-list">
+              <div class="borough-row">
+                <div class="borough-name"><span class="borough-dot" style="background:var(--manhattan)"></span>Manhattan
+                </div>
+                <div class="borough-bar-track">
+                  <div class="borough-bar-fill" style="width:0%;background:var(--manhattan)" data-width="100%"></div>
+                </div>
+                <div class="borough-price">$1,531</div>
+              </div>
+              <div class="borough-row">
+                <div class="borough-name"><span class="borough-dot" style="background:var(--brooklyn)"></span>Brooklyn
+                </div>
+                <div class="borough-bar-track">
+                  <div class="borough-bar-fill" style="width:0%;background:var(--brooklyn)" data-width="30.7%"></div>
+                </div>
+                <div class="borough-price">$470</div>
+              </div>
+              <div class="borough-row">
+                <div class="borough-name"><span class="borough-dot" style="background:var(--queens)"></span>Queens</div>
+                <div class="borough-bar-track">
+                  <div class="borough-bar-fill" style="width:0%;background:var(--queens)" data-width="26.6%"></div>
+                </div>
+                <div class="borough-price">$408</div>
+              </div>
+              <div class="borough-row">
+                <div class="borough-name"><span class="borough-dot" style="background:var(--staten)"></span>Staten
+                  Island</div>
+                <div class="borough-bar-track">
+                  <div class="borough-bar-fill" style="width:0%;background:var(--staten)" data-width="21.2%"></div>
+                </div>
+                <div class="borough-price">$325</div>
+              </div>
+              <div class="borough-row">
+                <div class="borough-name"><span class="borough-dot" style="background:var(--bronx)"></span>Bronx</div>
+                <div class="borough-bar-track">
+                  <div class="borough-bar-fill" style="width:0%;background:var(--bronx)" data-width="15.9%"></div>
+                </div>
+                <div class="borough-price">$243</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="chart-card">
+          <div class="chart-title">Transaction Share by Borough</div>
+          <div class="chart-subtitle">Volume distribution</div>
+          <div class="chart-wrap" style="height:200px;">
+            <canvas id="doughnutChart"></canvas>
+          </div>
+          <div class="legend" style="margin-top:20px;">
+            <div class="legend-item"><span class="legend-dot" style="background:var(--manhattan)"></span>Manhattan</div>
+            <div class="legend-item"><span class="legend-dot" style="background:var(--brooklyn)"></span>Brooklyn</div>
+            <div class="legend-item"><span class="legend-dot" style="background:var(--queens)"></span>Queens</div>
+            <div class="legend-item"><span class="legend-dot" style="background:var(--staten)"></span>Staten Is.</div>
+            <div class="legend-item"><span class="legend-dot" style="background:var(--bronx)"></span>Bronx</div>
+          </div>
+
+          <div style="margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--border);">
+            <div class="chart-title">Building Class Distribution</div>
+            <div class="chart-subtitle">By average sale price</div>
+            <div style="display:flex;flex-direction:column;gap:12px;margin-top:14px;">
+              <div>
+                <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px;">
+                  <span style="color:var(--muted)">Three Family Dwellings</span>
+                  <span style="font-family:'JetBrains Mono',monospace;color:var(--accent)">$1,012,637</span>
+                </div>
+                <div class="borough-bar-track">
+                  <div class="borough-bar-fill" style="width:0%;background:var(--accent)" data-width="100%"></div>
+                </div>
+              </div>
+              <div>
+                <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px;">
+                  <span style="color:var(--muted)">Two Family Dwellings</span>
+                  <span style="font-family:'JetBrains Mono',monospace;color:var(--accent2)">$806,950</span>
+                </div>
+                <div class="borough-bar-track">
+                  <div class="borough-bar-fill" style="width:0%;background:var(--accent2)" data-width="79.7%"></div>
+                </div>
+              </div>
+              <div>
+                <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px;">
+                  <span style="color:var(--muted)">One Family Dwellings</span>
+                  <span style="font-family:'JetBrains Mono',monospace;color:var(--accent4)">$671,864</span>
+                </div>
+                <div class="borough-bar-track">
+                  <div class="borough-bar-fill" style="width:0%;background:var(--accent4)" data-width="66.3%"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <!-- TRENDS -->
+    <section id="trends">
+      <div class="section-header fade-in">
+        <div>
+          <div class="section-label">Time Series · Price Trends</div>
+          <div class="section-title">Market Momentum</div>
+        </div>
+        <div class="section-note">Average sale prices show consistent upward trend from 2016 to 2017</div>
+      </div>
+
+      <div class="chart-grid-2">
+        <div class="chart-card fade-in stagger-1">
+          <div class="chart-title">Monthly Average Sale Price</div>
+          <div class="chart-subtitle">All boroughs combined · Sep 2016 – Aug 2017</div>
+          <div class="chart-wrap tall"><canvas id="monthlyChart"></canvas></div>
+        </div>
+        <div class="chart-card fade-in stagger-2">
+          <div class="chart-title">Monthly Transaction Volume</div>
+          <div class="chart-subtitle">Number of sales per month · peak Jun 2017</div>
+          <div class="chart-wrap tall"><canvas id="volumeChart"></canvas></div>
+        </div>
+      </div>
+
+      <div style="margin-top: 20px;">
+        <div class="chart-card span-full fade-in">
+          <div class="chart-title">Year-over-Year Price Change by Borough (2016 → 2017)</div>
+          <div class="chart-subtitle">Manhattan led growth at +28.87% · All boroughs showed positive YoY change</div>
+          <div class="chart-wrap"><canvas id="yoyChart"></canvas></div>
+        </div>
+      </div>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <!-- NEIGHBORHOODS -->
+    <section id="neighborhoods">
+      <div class="section-header fade-in">
+        <div>
+          <div class="section-label">Spatial · Neighborhood Analysis</div>
+          <div class="section-title">Top 10 Neighborhoods</div>
+        </div>
+        <div class="section-note">Ranked by average sale price · Manhattan dominates top rankings</div>
+      </div>
+
+      <div class="chart-grid-2">
+        <div class="chart-card fade-in stagger-1">
+          <div class="chart-title">Average Sale Price Ranking</div>
+          <div class="chart-subtitle">Top 10 most expensive neighborhoods</div>
+          <div class="chart-wrap tall"><canvas id="hoodChart"></canvas></div>
+        </div>
+
+        <div class="chart-card fade-in stagger-2">
+          <div class="chart-title">Neighborhood Price League Table</div>
+          <div class="chart-subtitle">Top 10 ranked neighborhoods by avg sale price</div>
+          <table class="hood-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Neighborhood</th>
+                <th>Avg Price</th>
+                <th>Relative</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="rank-badge" style="background:rgba(232,201,122,0.15);color:var(--accent)">1</span></td>
+                <td>SoHo</td>
+                <td style="font-family:'JetBrains Mono',monospace;color:var(--accent)">$17.9M</td>
+                <td>
+                  <div class="price-bar-inline">
+                    <div class="mini-bar-track">
+                      <div class="mini-bar-fill" style="width:0%" data-width="100%"></div>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td><span class="rank-badge" style="background:rgba(232,201,122,0.08);color:var(--muted)">2</span></td>
+                <td>Greenwich Village (Central)</td>
+                <td style="font-family:'JetBrains Mono',monospace;">$12.5M</td>
+                <td>
+                  <div class="price-bar-inline">
+                    <div class="mini-bar-track">
+                      <div class="mini-bar-fill" style="width:0%" data-width="70.3%"></div>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td><span class="rank-badge" style="background:rgba(232,201,122,0.08);color:var(--muted)">3</span></td>
+                <td>Upper East Side (59–79)</td>
+                <td style="font-family:'JetBrains Mono',monospace;">$12.5M</td>
+                <td>
+                  <div class="price-bar-inline">
+                    <div class="mini-bar-track">
+                      <div class="mini-bar-fill" style="width:0%" data-width="70.1%"></div>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td><span class="rank-badge" style="background:rgba(232,201,122,0.08);color:var(--muted)">4</span></td>
+                <td>Upper West Side (59–79)</td>
+                <td style="font-family:'JetBrains Mono',monospace;">$10.3M</td>
+                <td>
+                  <div class="price-bar-inline">
+                    <div class="mini-bar-track">
+                      <div class="mini-bar-fill" style="width:0%" data-width="57.5%"></div>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td><span class="rank-badge" style="background:rgba(232,201,122,0.08);color:var(--muted)">5</span></td>
+                <td>Greenwich Village (West)</td>
+                <td style="font-family:'JetBrains Mono',monospace;">$9.3M</td>
+                <td>
+                  <div class="price-bar-inline">
+                    <div class="mini-bar-track">
+                      <div class="mini-bar-fill" style="width:0%" data-width="52.2%"></div>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td><span class="rank-badge" style="background:rgba(232,201,122,0.08);color:var(--muted)">6</span></td>
+                <td>Upper East Side (79–96)</td>
+                <td style="font-family:'JetBrains Mono',monospace;">$8.9M</td>
+                <td>
+                  <div class="price-bar-inline">
+                    <div class="mini-bar-track">
+                      <div class="mini-bar-fill" style="width:0%" data-width="50.1%"></div>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td><span class="rank-badge" style="background:rgba(232,201,122,0.08);color:var(--muted)">7</span></td>
+                <td>Chelsea</td>
+                <td style="font-family:'JetBrains Mono',monospace;">$7.8M</td>
+                <td>
+                  <div class="price-bar-inline">
+                    <div class="mini-bar-track">
+                      <div class="mini-bar-fill" style="width:0%" data-width="43.8%"></div>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td><span class="rank-badge" style="background:rgba(232,201,122,0.08);color:var(--muted)">8</span></td>
+                <td>Upper West Side (79–96)</td>
+                <td style="font-family:'JetBrains Mono',monospace;">$7.6M</td>
+                <td>
+                  <div class="price-bar-inline">
+                    <div class="mini-bar-track">
+                      <div class="mini-bar-fill" style="width:0%" data-width="42.6%"></div>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td><span class="rank-badge" style="background:rgba(232,201,122,0.08);color:var(--muted)">9</span></td>
+                <td>Gramercy</td>
+                <td style="font-family:'JetBrains Mono',monospace;">$7.4M</td>
+                <td>
+                  <div class="price-bar-inline">
+                    <div class="mini-bar-track">
+                      <div class="mini-bar-fill" style="width:0%" data-width="41.3%"></div>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+              <tr>
+                <td><span class="rank-badge" style="background:rgba(232,201,122,0.08);color:var(--muted)">10</span></td>
+                <td>Little Italy</td>
+                <td style="font-family:'JetBrains Mono',monospace;">$7.1M</td>
+                <td>
+                  <div class="price-bar-inline">
+                    <div class="mini-bar-track">
+                      <div class="mini-bar-fill" style="width:0%" data-width="39.7%"></div>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Building Age -->
+      <div style="margin-top: 20px;" class="chart-grid-2">
+        <div class="chart-card fade-in stagger-1">
+          <div class="chart-title">Sale Price by Building Age</div>
+          <div class="chart-subtitle">Pre-1900 buildings command the highest premiums</div>
+          <div class="chart-wrap"><canvas id="ageChart"></canvas></div>
+        </div>
+        <div class="chart-card fade-in stagger-2">
+          <div class="chart-title">Building Era Distribution</div>
+          <div class="chart-subtitle">63.6% of stock built before 1950</div>
+          <div class="chart-wrap" style="height:200px;"><canvas id="eraPieChart"></canvas></div>
+          <div style="margin-top:20px; display:flex;flex-direction:column;gap:10px;">
+            <div
+              style="display:flex;justify-content:space-between;font-size:13px;padding:10px 14px;background:rgba(255,255,255,0.02);border-radius:8px;border:1px solid var(--border);">
+              <span style="color:var(--muted)">Pre-1950</span>
+              <span style="font-family:'JetBrains Mono',monospace;color:var(--accent)">15,680 properties</span>
+            </div>
+            <div
+              style="display:flex;justify-content:space-between;font-size:13px;padding:10px 14px;background:rgba(255,255,255,0.02);border-radius:8px;border:1px solid var(--border);">
+              <span style="color:var(--muted)">1950–2000</span>
+              <span style="font-family:'JetBrains Mono',monospace;color:var(--accent4)">7,108 properties</span>
+            </div>
+            <div
+              style="display:flex;justify-content:space-between;font-size:13px;padding:10px 14px;background:rgba(255,255,255,0.02);border-radius:8px;border:1px solid var(--border);">
+              <span style="color:var(--muted)">Post-2000</span>
+              <span style="font-family:'JetBrains Mono',monospace;color:var(--accent2)">1,880 properties</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="section-divider"></div>
+
+    <!-- INSIGHTS -->
+    <section id="insights">
+      <div class="section-header fade-in">
+        <div>
+          <div class="section-label">Analysis · Key Findings</div>
+          <div class="section-title">Data Insights</div>
+        </div>
+      </div>
+
+      <div class="insights-grid">
+        <div class="insight-card fade-in stagger-1">
+          <div class="insight-icon">📈</div>
+          <div class="insight-heading">Strong Price Appreciation</div>
+          <div class="insight-text">Average sale prices rose from <span class="insight-highlight">$715K in 2016</span>
+            to <span class="insight-highlight">$780K in 2017</span> — a 9.2% increase overall. Manhattan led with a
+            remarkable <span class="insight-highlight">+28.87% YoY gain</span>, while all five boroughs posted positive
+            growth.</div>
+        </div>
+        <div class="insight-card fade-in stagger-2">
+          <div class="insight-icon">🏆</div>
+          <div class="insight-heading">Manhattan's Premium</div>
+          <div class="insight-text">Manhattan's average sale price of <span class="insight-highlight">$6.57M</span> is
+            6.6× higher than Brooklyn ($994K), the second most expensive borough. At <span
+              class="insight-highlight">$1,531/sqft</span>, Manhattan's price per square foot is over 3× that of
+            Brooklyn.</div>
+        </div>
+        <div class="insight-card fade-in stagger-3">
+          <div class="insight-icon">📊</div>
+          <div class="insight-heading">Highly Skewed Distribution</div>
+          <div class="insight-text">With a skewness of <span class="insight-highlight">16.17</span>, the sale price
+            distribution is heavily right-skewed. The mean ($757K) is <span class="insight-highlight">28% above the
+              median ($590K)</span>, indicating a small number of ultra-high-value sales pulling the average up
+            significantly.</div>
+        </div>
+        <div class="insight-card fade-in stagger-1">
+          <div class="insight-icon">🏛️</div>
+          <div class="insight-heading">Age Adds Value</div>
+          <div class="insight-text">Counterintuitively, older buildings command higher prices. Pre-1900 properties
+            average <span class="insight-highlight">$1,498,627</span>, more than double the $644,996 average for
+            post-1980 buildings. Historic character and prime locations drive this premium.</div>
+        </div>
+        <div class="insight-card fade-in stagger-2">
+          <div class="insight-icon">📅</div>
+          <div class="insight-heading">Seasonal Transaction Patterns</div>
+          <div class="insight-text">Transaction volume peaked in <span class="insight-highlight">June 2017 (2,354
+              sales)</span> and hit its lowest in August 2017 (1,601). The market shows clear seasonality, with summer
+            typically driving higher volumes at the end of the fiscal year cycle.</div>
+        </div>
+        <div class="insight-card fade-in stagger-3">
+          <div class="insight-icon">🌟</div>
+          <div class="insight-heading">SoHo Leads Luxury Tier</div>
+          <div class="insight-text">SoHo tops neighborhood rankings at an average of <span
+              class="insight-highlight">$17.85M</span> — 2.4× higher than the second-ranked Greenwich Village Central
+            ($12.5M). The 1,166 luxury properties identified (2× borough avg) are concentrated almost entirely in
+            Manhattan.</div>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <div class="left">NYC PropMarket</div>
+      <div class="right">
+        Advanced Data Science & Analytics · Group 17<br>
+        Dataset: NYC Rolling Sales 2016–2017 · 84,548 raw records → 24,668 cleaned
+      </div>
+    </footer>
+
+  </main>
+
+  <script>
+    // ── Chart.js defaults
+    Chart.defaults.color = '#7a8090';
+    Chart.defaults.borderColor = 'rgba(255,255,255,0.06)';
+    Chart.defaults.font.family = "'DM Sans', sans-serif";
+    Chart.defaults.font.size = 12;
+
+    const gold = '#e8c97a', teal = '#4fc3a1', blue = '#7ab8e8', purple = '#c47ae8', red = '#e87a7a';
+
+    // ── Monthly Avg Price
+    new Chart(document.getElementById('monthlyChart'), {
+      type: 'line',
+      data: {
+        labels: ['Sep-16', 'Oct-16', 'Nov-16', 'Dec-16', 'Jan-17', 'Feb-17', 'Mar-17', 'Apr-17', 'May-17', 'Jun-17', 'Jul-17', 'Aug-17'],
+        datasets: [{
+          data: [726902, 704447, 719449, 708341, 801200, 775693, 737134, 756509, 764467, 788643, 784179, 849409],
+          borderColor: gold,
+          backgroundColor: 'rgba(232,201,122,0.08)',
+          borderWidth: 2,
+          pointRadius: 4,
+          pointBackgroundColor: gold,
+          pointBorderColor: '#0a0c10',
+          pointBorderWidth: 2,
+          tension: 0.4,
+          fill: true
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ' $' + ctx.raw.toLocaleString() } } },
+        scales: {
+          x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { maxRotation: 30 } },
+          y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { callback: v => '$' + (v / 1000).toFixed(0) + 'K' } }
+        }
+      }
+    });
+
+    // ── Monthly Volume
+    new Chart(document.getElementById('volumeChart'), {
+      type: 'bar',
+      data: {
+        labels: ['Sep-16', 'Oct-16', 'Nov-16', 'Dec-16', 'Jan-17', 'Feb-17', 'Mar-17', 'Apr-17', 'May-17', 'Jun-17', 'Jul-17', 'Aug-17'],
+        datasets: [{
+          data: [2297, 2003, 2091, 2310, 1986, 1872, 2215, 1902, 2099, 2354, 1938, 1601],
+          backgroundColor: ctx => {
+            const v = ctx.raw;
+            if (v === 2354) return teal;
+            if (v === 1601) return red;
+            return 'rgba(122,184,232,0.3)';
+          },
+          borderColor: ctx => {
+            const v = ctx.raw;
+            if (v === 2354) return teal;
+            if (v === 1601) return red;
+            return blue;
+          },
+          borderWidth: 1,
+          borderRadius: 4,
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ' ' + ctx.raw.toLocaleString() + ' sales' } } },
+        scales: {
+          x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { maxRotation: 30 } },
+          y: { grid: { color: 'rgba(255,255,255,0.04)' } }
+        }
+      }
+    });
+
+    // ── YoY Chart
+    new Chart(document.getElementById('yoyChart'), {
+      type: 'bar',
+      data: {
+        labels: ['Manhattan', 'Bronx', 'Brooklyn', 'Queens', 'Staten Island'],
+        datasets: [{
+          data: [28.87, 9.18, 7.36, 2.42, 3.30],
+          backgroundColor: [gold, red, teal, blue, purple].map(c => c + '55'),
+          borderColor: [gold, red, teal, blue, purple],
+          borderWidth: 1.5,
+          borderRadius: 6
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ' +' + ctx.raw + '%' } } },
+        scales: {
+          x: { grid: { display: false } },
+          y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { callback: v => '+' + v + '%' } }
+        }
+      }
+    });
+
+    // ── Doughnut
+    new Chart(document.getElementById('doughnutChart'), {
+      type: 'doughnut',
+      data: {
+        labels: ['Manhattan', 'Brooklyn', 'Queens', 'Staten Island', 'Bronx'],
+        datasets: [{
+          data: [18, 28, 26, 14, 14],
+          backgroundColor: [gold, teal, blue, purple, red].map(c => c + 'cc'),
+          borderColor: '#0a0c10',
+          borderWidth: 3
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: ctx => ' ' + ctx.label + ': ~' + ctx.raw + '%' } }
+        },
+        cutout: '70%'
+      }
+    });
+
+    // ── Neighborhood Chart
+    new Chart(document.getElementById('hoodChart'), {
+      type: 'bar',
+      data: {
+        labels: ['SoHo', 'GV-Central', 'UES (59-79)', 'UWS (59-79)', 'GV-West', 'UES (79-96)', 'Chelsea', 'UWS (79-96)', 'Gramercy', 'Little Italy'],
+        datasets: [{
+          data: [17852167, 12538250, 12517404, 10267857, 9314445, 8938164, 7825000, 7598211, 7370000, 7090000],
+          backgroundColor: [gold, '#d4b86a', '#c0a45a', '#ac924a', '#987e3a', '#84702a', '#70601a', '#5c500a', '#484000', '#343000'].map(c => c + 'bb'),
+          borderColor: gold,
+          borderWidth: 1,
+          borderRadius: 4
+        }]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ' $' + (ctx.raw / 1000000).toFixed(1) + 'M' } } },
+        scales: {
+          x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { callback: v => '$' + (v / 1000000).toFixed(0) + 'M' } },
+          y: { grid: { display: false }, ticks: { font: { size: 11 } } }
+        }
+      }
+    });
+
+    // ── Age Chart
+    new Chart(document.getElementById('ageChart'), {
+      type: 'bar',
+      data: {
+        labels: ['Pre-1900', '1900–1939', '1940–1979', 'Post-1980'],
+        datasets: [{
+          data: [1498627, 788791, 649047, 644996],
+          backgroundColor: [gold, teal, blue, purple].map(c => c + '55'),
+          borderColor: [gold, teal, blue, purple],
+          borderWidth: 1.5,
+          borderRadius: 6
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ' $' + ctx.raw.toLocaleString() } } },
+        scales: {
+          x: { grid: { display: false } },
+          y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { callback: v => '$' + (v / 1000).toFixed(0) + 'K' } }
+        }
+      }
+    });
+
+    // ── Era Pie
+    new Chart(document.getElementById('eraPieChart'), {
+      type: 'doughnut',
+      data: {
+        labels: ['Pre-1950', '1950–2000', 'Post-2000'],
+        datasets: [{
+          data: [15680, 7108, 1880],
+          backgroundColor: [gold + 'cc', blue + 'cc', teal + 'cc'],
+          borderColor: '#0a0c10',
+          borderWidth: 3
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: ctx => ' ' + ctx.label + ': ' + ctx.raw.toLocaleString() } }
+        },
+        cutout: '65%'
+      }
+    });
+
+    // ── Intersection Observer for scroll animations
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          e.target.classList.add('visible');
+          // animate bars
+          e.target.querySelectorAll('.borough-bar-fill[data-width], .mini-bar-fill[data-width]').forEach(bar => {
+            setTimeout(() => { bar.style.width = bar.dataset.width; }, 200);
+          });
+        }
+      });
+    }, { threshold: 0.1 });
+
+    document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+
+    // initial hero animation
+    document.querySelectorAll('.hero .fade-in').forEach(el => {
+      setTimeout(() => el.classList.add('visible'), 300);
+    });
+
+    // animate bars in view on load
+    setTimeout(() => {
+      document.querySelectorAll('.borough-bar-fill[data-width], .mini-bar-fill[data-width]').forEach(bar => {
+        const rect = bar.getBoundingClientRect();
+        if (rect.top < window.innerHeight) bar.style.width = bar.dataset.width;
+      });
+    }, 600);
+  </script>
+</body>
+
+</html>
